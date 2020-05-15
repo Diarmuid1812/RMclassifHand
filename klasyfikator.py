@@ -82,14 +82,13 @@ from sklearn.neighbors import KNeighborsClassifier
 kNN = KNeighborsClassifier() # domyslna liczba sasiadow = 5
 kNN.fit( x_learn, y_learn )
 
-# test na pierwszym z brzegu sygnale :
+# test na pojedynczym, pierwszym z brzegu sygnale :
 kNN.predict( [ x_test[0] ] )
 y_test[0]
 
-# mozna teraz ocenic klasyfikator mierzac sumaryczny
-# blad dopoasowania na zbiorze testowym ...
-
+# ocena klasyfikatora prez wyznaczenie sumarycznego
+# bledu dopoasowania na zbiorze testowym :
 y_test_pred = kNN.predict( x_test )
-
+sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
 
 ##################################################
