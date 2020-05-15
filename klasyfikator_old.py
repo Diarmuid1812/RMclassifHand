@@ -13,7 +13,7 @@ osoba1 = io.loadmat(path + file1)['osoba_1']
 osoba2 = io.loadmat(path + file2)['osoba_4']
 #osoba1.shape
 
-##### Struktura danych w plik .mat : ############
+##### Struktura danych w pliku .mat : ###########
 
 # 11 klas ruchów,
 # 200 powtórzen kazdego ruchu,
@@ -42,7 +42,7 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
     return A
 
 def stft_features( data, k, p, nwf, nwt ) :
-    F = np.zeros(201) # macierz do ktorej beda zapisywane cechy stft  i klasa ruchu
+    F = np.zeros(201) # tablica do ktorej beda zapisywane cechy stft  i klasa ruchu
     for m in range(8) : # petla po 8 kanalach EMG
         F[m*25:(m+1)*25] = np.ndarray.flatten( averaged_stft_matrix(data,k,p,m,nwf,nwt) )
     F[200] = k # klasa ruchu (wartosc w zakresie od 0 do 10)
@@ -70,5 +70,8 @@ df2 = pandas.DataFrame(L2)
 ################################################
 
 # Teraz trzeba wykonac selekcje cech metoda PCA oraz klasyfikacje metoda kNN
+
+#from sklearn.decomposition import PCA
+#from sklearn.neighbors import KNeighborsClassifier
 
 ##################################################
