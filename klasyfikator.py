@@ -3,7 +3,7 @@ from scipy import signal
 import numpy as np
 #import pandas
 import matplotlib.pyplot as plt
-path = 'C:/Users/Pawel/Desktop/Reka projekt/'
+path = './'
 file1 = 'osoba_1.mat'
 file2 = 'osoba_2.mat'
 #matdata1 = io.loadmat(path + file)
@@ -72,7 +72,7 @@ for k in range(11) :
 
 # Teraz trzeba wykonac selekcje cech metoda PCA oraz klasyfikacje metoda kNN
 
-#from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
 ##################################################
@@ -92,3 +92,36 @@ y_test_pred = kNN.predict( x_test )
 sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
 
 ##################################################
+
+# PCA
+# variance explained to >99% (parametr z pracy dypl p. Boczara)
+# przegląd zupełny cech, konieczny do operowania na wariancji
+pca = PCA(0.99, svd_solver='full')
+
+# zbiór dla kNN w zrzutowanej przestrzeni
+x_learnArr = np.vstack(x_learn)
+pca.fit(x_learnArr)
+x_learnPCA = pca.transform(x_learnArr)  # traktuj jak tablicę 2D
+x_learnPCA_prepared = np.vsplit(x_learnPCA, x_learnPCA.shape[0])
+for g in range(2200):
+    x_learnPCA_prepared[g] = x_learnPCA_prepared[g].reshape(-1)
+
+# Zapisanie liczby cech dla rzutowań nowych próbek
+components = pca.components_[0]
+# skonstuowanie nowego PCA -- ze stałą liczbą cech
+
+
+# kNN
+kNNpPCA = KNeighborsClassifier()
+kNNpPCA.fit(x_learnPCA_prepared, y_learn)
+
+# Test dla pojedynczej próbki
+# reshape formatuje 1 próbkę
+# do formatu akceptowanego przez PCA
+shaped = pca.transform(x_test[0].reshape(1, -1))
+print (kNNpPCA.predict(shaped))
+
+# ocena klasyfikatora prez wyznaczenie sumarycznego
+# bledu dopoasowania na zbiorze testowym :
+y_test_pred = kNNpPCA.predict(pca.transform(x_test))
+Valid = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
