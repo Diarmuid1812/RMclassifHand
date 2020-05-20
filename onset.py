@@ -7,23 +7,25 @@ osoba2 = loadmat('osoba_2.mat')['osoba_4']
 
 sig = osoba1[0, 0, 4, :]
 t = np.arange(0, 2, 0.001)
+def onsetCut(sample):
+    K = 1.5
+    # Długość próbki
+    sampleLen = 1500
+    winLen = 60 #int(np.round(np.sqrt(len(sig))))
+    winInd = winLen
+    onset = None
 
-K = 1.5
-winLen = 60 #int(np.round(np.sqrt(len(sig))))
-winInd = winLen
-onset = None
+    mn0 = np.mean(abs(sig[0:winLen]))
 
-mn0 = np.mean(abs(sig[0:winLen]))
+    while winInd < len(sig)-winLen and onset is None:
+        mnI = mn = np.mean(abs(sig[winInd:winInd+winLen]))
 
-while winInd < len(sig)-winLen and onset is None:
-    mnI = mn = np.mean(abs(sig[winInd:winInd+winLen]))
-
-    if mnI > K*mn0:
-        onset = winInd
-    winInd += int(winLen/2)
-
-plt.plot(t, sig)
-plt.show()
+        if mnI > K*mn0:
+            onset = winInd
+        winInd += int(winLen/2)
+    return sample[onset:onset+sampleLen]
+    # plt.plot(t, sig)
+    # plt.show()
 '''
 K = 0.6
 mn = np.mean(abs(sig))

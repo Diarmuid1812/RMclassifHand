@@ -3,6 +3,10 @@ from scipy import signal
 import numpy as np
 #import pandas
 import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import StandardScaler
+from onset import onsetCut
+
 path = './'
 file1 = 'osoba_1.mat'
 file2 = 'osoba_2.mat'
@@ -23,7 +27,9 @@ osoba2 = io.loadmat(path + file2)['osoba_4']
 ################## FUNKCJE ######################
 
 def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) :
-    u = data[k,p,m,:]
+    uRaw = data[k,p,m,:]
+    u = onsetCut(uRaw)
+
     t,f,z = signal.stft( u, nperseg = 2*np.round(np.sqrt(len(u))) )
     y = np.abs(z)
     nf = len(f) # ilosc okien czestotliwosciowych przed usrednieniem
@@ -75,6 +81,7 @@ for k in range(11) :
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
+
 ##################################################
 
 # Najpierw klasyfikacja bez PCA :
@@ -100,8 +107,10 @@ pca = PCA(0.99, svd_solver='full')
 
 # zbiór dla kNN w zrzutowanej przestrzeni
 x_learnArr = np.vstack(x_learn)
-pca.fit(x_learnArr)
-x_learnPCA = pca.transform(x_learnArr)  # traktuj jak tablicę 2D
+x_learnNorm = StandardScaler().fit_transform(x_learnArr)
+
+pca.fit(x_learnNorm)
+x_learnPCA = pca.transform(x_learnNorm)  # traktuj jak tablicę 2D
 x_learnPCA_prepared = np.vsplit(x_learnPCA, x_learnPCA.shape[0])
 for g in range(2200):
     x_learnPCA_prepared[g] = x_learnPCA_prepared[g].reshape(-1)
@@ -123,5 +132,6 @@ print (kNNpPCA.predict(shaped))
 
 # ocena klasyfikatora prez wyznaczenie sumarycznego
 # bledu dopoasowania na zbiorze testowym :
-y_test_pred = kNNpPCA.predict(pca.transform(x_test))
+x_testNorm = StandardScaler().fit_transform(x_test)
+y_test_pred = kNNpPCA.predict(pca.transform(x_testNorm))
 Valid = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
