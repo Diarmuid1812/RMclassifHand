@@ -53,36 +53,49 @@ def stft_features( data, k, p, nwf, nwt ) :
         F[m*25:(m+1)*25] = np.ndarray.flatten( averaged_stft_matrix(data,k,p,m,nwf,nwt) )
     return F
 
-################## MAIN #########################
-    
-# Na poczatek przyjmuje, ze osoba1 tworzy zbior uczacy a osoba2 zbior testowy
+################## Ekstrakcja cech ##############################
 
 nwf = 5 # zadana ilosc okien czestotliwosciowych
 nwt = 5 # zadana ilosc okien czasowych
 
-x_learn = []
-y_learn = []
+x = [] # cechy stft
+y = [] # klasa ruchu (wartosc w zakresie od 0 do 10)
+
 for k in range(11) :
     for p in range(200) :
-        x_learn.append( stft_features(osoba1,k,p,nwf,nwt) ) # cechy stft
-        y_learn.append( k ) # klasa ruchu (wartosc w zakresie od 0 do 10)
-
-x_test = []
-y_test = []
+        x.append( stft_features(osoba1,k,p,nwf,nwt) ) 
+        y.append( k ) 
 for k in range(11) :
     for p in range(200) :
-        x_test.append( stft_features(osoba2,k,p,nwf,nwt) ) # cechy stft
-        y_test.append( k ) # klasa ruchu (wartosc w zakresie od 0 do 10)
+        x.append( stft_features(osoba2,k,p,nwf,nwt) )
+        y.append( k )
 
-################################################
+# Losowy podzial na zbiory :
+        
+test_percentage = 10 # procentowy udzial zbioru testowego [%]
 
-# Teraz trzeba wykonac selekcje cech metoda PCA oraz klasyfikacje metoda kNN
+test_quantity = int(len(x)*test_percentage/100)
+test_indices = random.sample(range(len(x)),test_quantity)
 
-from sklearn.decomposition import PCA
+# Zbior uczacy :
+
+x_learn =  [ x[i] for i in range(len(x)) if i not in test_indices ]
+y_learn =  [ y[i] for i in range(len(x)) if i not in test_indices ]
+        
+
+# Zbior testowy :
+
+x_test = [ x[i] for i in test_indices ]
+y_test = [ y[i] for i in test_indices ]
+
+
+#################################################################
+#### Zaladowanie pakietow do selekcji cech i klasyfikacji #######
+
+#from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
-
-##################################################
+#################################################################
 
 # Najpierw klasyfikacja bez PCA :
 
