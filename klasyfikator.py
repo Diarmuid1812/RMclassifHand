@@ -1,6 +1,7 @@
 from scipy import io
 from scipy import signal
 import numpy as np
+import random
 #import pandas
 import matplotlib.pyplot as plt
 
@@ -92,7 +93,7 @@ y_test = [ y[i] for i in test_indices ]
 #################################################################
 #### Zaladowanie pakietow do selekcji cech i klasyfikacji #######
 
-#from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
 #################################################################
@@ -148,3 +149,4 @@ print (kNNpPCA.predict(shaped))
 x_testNorm = StandardScaler().fit_transform(x_test)
 y_test_pred = kNNpPCA.predict(pca.transform(x_testNorm))
 Valid = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
+print(Valid)
