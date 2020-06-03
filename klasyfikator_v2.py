@@ -36,7 +36,7 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
         for j in range(nwt) :
             A[i,j] = np.mean( y[i*df:(i+1)*df, j*dt:(j+1)*dt] )
     if(draw_stft) :
-        plt.pcolormesh(range(nwf), range(nwt), A)
+        plt.pcolormesh(A)
         plt.show()
     if(draw_signal) :
         plt.plot(u)
@@ -92,19 +92,23 @@ from sklearn.neighbors import KNeighborsClassifier
 
 #################################################################
 
-# Najpierw klasyfikacja bez PCA :
+# Najpierw kNN bez PCA :
 
 kNN = KNeighborsClassifier() # domyslna liczba sasiadow = 5
 kNN.fit( x_learn, y_learn )
 
-# test na pojedynczym, pierwszym z brzegu sygnale :
-kNN.predict( [ x_test[0] ] )
-y_test[0]
-
 # ocena klasyfikatora prez wyznaczenie sumarycznego
 # bledu dopoasowania na zbiorze testowym :
 y_test_pred = kNN.predict( x_test )
-sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
+Valid_test = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
+print(Valid_test/len(x_test))
+
+# ocena klasyfikatora na zbiorze uczacym
+y_learn_pred = kNN.predict( x_learn )
+Valid_learn = sum( [ 1 for i in range(len(y_learn)) if y_learn_pred[i] == y_learn[i] ] )
+print(Valid_learn/len(x_learn))
+
+# END
 
 ##################################################
 
