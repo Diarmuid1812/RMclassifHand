@@ -2,10 +2,9 @@ from scipy import io
 from scipy import signal
 import numpy as np
 import random
-#import pandas
 import matplotlib.pyplot as plt
-
-from sklearn.preprocessing import StandardScaler
+#import os
+#os.chdir('C:/Users/Pawel/Desktop/Reka_projekt/')
 from onset import onsetCut
 
 path = './'
@@ -28,8 +27,8 @@ osoba2 = io.loadmat(path + file2)['osoba_4']
 ################## FUNKCJE ######################
 
 def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) :
-    uRaw = data[k,p,m,:]
-    u = onsetCut(uRaw)
+    u_Raw = data[k,p,m,:]
+    u = onsetCut(u_Raw)
 
     t,f,z = signal.stft( u, nperseg = 2*np.round(np.sqrt(len(u))) )
     y = np.abs(z)
@@ -42,7 +41,7 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
         for j in range(nwt) :
             A[i,j] = np.mean( y[i*df:(i+1)*df, j*dt:(j+1)*dt] )
     if(draw_stft) :
-        plt.pcolormesh(range(nwf), range(nwt), A)
+        plt.pcolormesh(A)
         plt.show()
     if(draw_signal) :
         plt.plot(u)
@@ -95,58 +94,79 @@ y_test = [ y[i] for i in test_indices ]
 
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
 
 #################################################################
 
-# Najpierw klasyfikacja bez PCA :
+# Najpierw kNN bez PCA ale z onsetem :
 
-kNN = KNeighborsClassifier() # domyslna liczba sasiadow = 5
-kNN.fit( x_learn, y_learn )
+kNN_Raw = KNeighborsClassifier() # domyslna liczba sasiadow = 5
+kNN_Raw.fit( x_learn, y_learn )
 
-# test na pojedynczym, pierwszym z brzegu sygnale :
-kNN.predict( [ x_test[0] ] )
-y_test[0]
+# ocena klasyfikatora na zbiorze uczacym
+y_learnPred_Raw = kNN_Raw.predict( x_learn )
+Valid_learn_Raw = sum( [ 1 for i in range(len(y_learn)) if y_learnPred_Raw[i] == y_learn[i] ] )
+print(Valid_learn_Raw/len(y_learn))
 
-# ocena klasyfikatora prez wyznaczenie sumarycznego
-# bledu dopoasowania na zbiorze testowym :
-y_test_pred = kNN.predict( x_test )
-sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
+# ocena klasyfikatora na zbiorze testowym :
+y_testPred_Raw = kNN_Raw.predict( x_test )
+Valid_test_Raw = sum( [ 1 for i in range(len(y_test)) if y_testPred_Raw[i] == y_test[i] ] )
+print(Valid_test_Raw/len(y_test))
 
 ##################################################
+
+# teraz kNN z PCA i onsetem :
 
 # PCA
 # variance explained to >99% (parametr z pracy dypl p. Boczara)
 # przegląd zupełny cech, konieczny do operowania na wariancji
 pca = PCA(0.99, svd_solver='full')
 
-# zbiór dla kNN w zrzutowanej przestrzeni
+# zbiór uczacy dla kNN w zrzutowanej przestrzeni
 x_learnArr = np.vstack(x_learn)
 x_learnNorm = StandardScaler().fit_transform(x_learnArr)
 
 pca.fit(x_learnNorm)
-x_learnPCA = pca.transform(x_learnNorm)  # traktuj jak tablicę 2D
+
+x_learnPCA = pca.transform(x_learnNorm)
 x_learnPCA_prepared = np.vsplit(x_learnPCA, x_learnPCA.shape[0])
-for g in range(2200):
+for g in range(x_learnPCA.shape[0]):
     x_learnPCA_prepared[g] = x_learnPCA_prepared[g].reshape(-1)
 
 # Zapisanie liczby cech dla rzutowań nowych próbek
-components = pca.components_[0]
+#components = pca.components_[0]
 # skonstuowanie nowego PCA -- ze stałą liczbą cech
 
-
 # kNN
-kNNpPCA = KNeighborsClassifier()
-kNNpPCA.fit(x_learnPCA_prepared, y_learn)
+kNN = KNeighborsClassifier()
+kNN.fit(x_learnPCA_prepared, y_learn)
 
-# Test dla pojedynczej próbki
-# reshape formatuje 1 próbkę
-# do formatu akceptowanego przez PCA
-shaped = pca.transform(x_test[0].reshape(1, -1))
-print (kNNpPCA.predict(shaped))
+# ocena klasyfikatora na zbiorze uczacym
+y_learn_pred = kNN.predict( x_learnPCA_prepared )
+Valid_learn = sum( [ 1 for i in range(len(y_learn)) if y_learn_pred[i] == y_learn[i] ] )
+print(Valid_learn/len(y_learn))
 
-# ocena klasyfikatora prez wyznaczenie sumarycznego
-# bledu dopoasowania na zbiorze testowym :
-x_testNorm = StandardScaler().fit_transform(x_test)
-y_test_pred = kNNpPCA.predict(pca.transform(x_testNorm))
-Valid = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
-print(Valid)
+# zbiór testowy dla kNN w zrzutowanej przestrzeni
+x_testArr = np.vstack(x_test)
+x_testNorm = StandardScaler().fit_transform(x_testArr)
+
+x_testPCA = pca.transform(x_testNorm)
+x_testPCA_prepared = np.vsplit(x_testPCA, x_testPCA.shape[0])
+for g in range(x_testPCA.shape[0]):
+    x_testPCA_prepared[g] = x_testPCA_prepared[g].reshape(-1)
+
+y_test_pred = kNN.predict(x_testPCA_prepared)
+
+# ocena klasyfikatora na zbiorze testowym :
+Valid_test = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
+print(Valid_test/len(y_test))
+
+# END
+
+##################################################
+
+# do wyprobowania :
+
+#from sklearn.svm import SVC
+#OneVsRestClassifier(SVC())
+#from sklearn.multiclass import OneVsRestClassifier
