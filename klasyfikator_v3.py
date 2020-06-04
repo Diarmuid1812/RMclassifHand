@@ -5,8 +5,9 @@ from scipy import signal
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import matplotlib.colors as col
+import matplotlib.cm as cm
 
-from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 #import os
 #os.chdir('C:/Users/Pawel/Desktop/Reka_projekt/')
@@ -55,8 +56,16 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
         dx = np.ones(5 * 5)  # length along x-axis of each bar
         dy = np.ones(5 * 5)  # length along y-axis of each bar
         dz = A.ravel()  # length along z-axis of each bar (height)
+        offset = dz + np.abs(dz.min())
+        fracs = offset.astype(float) / offset.max()
+        norm = col.Normalize(fracs.min(), fracs.max())
+        cmap = cm.get_cmap('viridis')
+        max_height = np.max(dz)  # get range of colorbars so we can normalize
+        min_height = np.min(dz)
+        # scale each z to [0,1], and get their rgb values
+        rgba = [cmap((k - min_height) / max_height) for k in dz]
 
-        ha.bar3d(px, py, z, dx, dy, dz)
+        ha.bar3d(px, py, z, dx, dy, dz, color=rgba)
         plt.show()
 
     if(draw_signal) :
@@ -156,6 +165,11 @@ for g in range(x_learnPCA.shape[0]):
 # kNN
 kNN = KNeighborsClassifier()
 kNN.fit(x_learnPCA_prepared, y_learn)
+
+import pickle
+knnPickle = open('./modelPZEZMS.pkl', 'wb')
+
+pickle.dump(kNN, knnPickle)
 
 # ocena klasyfikatora na zbiorze uczacym
 y_learn_pred = kNN.predict( x_learnPCA_prepared )
