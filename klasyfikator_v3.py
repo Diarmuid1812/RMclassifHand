@@ -1,8 +1,13 @@
+import matplotlib
+import notebook as notebook
 from scipy import io
 from scipy import signal
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 #import os
 #os.chdir('C:/Users/Pawel/Desktop/Reka_projekt/')
 from onset import onsetCut
@@ -41,8 +46,19 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
         for j in range(nwt) :
             A[i,j] = np.mean( y[i*df:(i+1)*df, j*dt:(j+1)*dt] )
     if(draw_stft) :
-        plt.pcolormesh(A)
+        hf = plt.figure()
+        ha = hf.add_subplot(111, projection='3d')
+
+        px = np.array([[i] * 5 for i in range(5)]).ravel()  # x coordinates of each bar
+        py = np.array([i for i in range(5)] * 5)  # y coordinates of each bar
+        z = np.zeros(5 * 5)  # z coordinates of each bar
+        dx = np.ones(5 * 5)  # length along x-axis of each bar
+        dy = np.ones(5 * 5)  # length along y-axis of each bar
+        dz = A.ravel()  # length along z-axis of each bar (height)
+
+        ha.bar3d(px, py, z, dx, dy, dz)
         plt.show()
+
     if(draw_signal) :
         plt.plot(u)
     return A
