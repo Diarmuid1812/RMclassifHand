@@ -195,8 +195,33 @@ print(Valid_test/len(y_test))
 
 ##################################################
 
-# do wyprobowania :
+# do wyprobowania wieloklasowy klasyfikator SVM :
 
-#from sklearn.svm import SVC
-#OneVsRestClassifier(SVC())
-#from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
+from sklearn.multiclass import OneVsRestClassifier
+#OneVsRestClassifier(SVC().fit(X,y))
+
+svm_Raw = OneVsRestClassifier(SVC()).fit(x_learn, y_learn)
+svm = OneVsRestClassifier(SVC()).fit(x_learnPCA_prepared, y_learn)
+
+# ocena klasyfikatora na zbiorze uczacym bez PCA :
+y_learnPred_svm_Raw = svm_Raw.predict( x_learn )
+Valid_learn_svm_Raw = sum( [ 1 for i in range(len(y_learn)) if y_learnPred_svm_Raw[i] == y_learn[i] ] )
+print(Valid_learn_svm_Raw/len(y_learn))
+
+# ocena klasyfikatora na zbiorze testowym bez PCA :
+y_testPred_svm_Raw = svm_Raw.predict( x_test )
+Valid_test_svm_Raw = sum( [ 1 for i in range(len(y_test)) if y_testPred_svm_Raw[i] == y_test[i] ] )
+print(Valid_test_svm_Raw/len(y_test))
+
+# ocena klasyfikatora na zbiorze uczacym
+y_learnPred_svm = svm.predict( x_learnPCA_prepared )
+Valid_learn_svm = sum( [ 1 for i in range(len(y_learn)) if y_learnPred_svm[i] == y_learn[i] ] )
+print(Valid_learn_svm/len(y_learn))
+
+# ocena klasyfikatora na zbiorze testowym :
+y_testPred_svm = svm.predict( x_testPCA_prepared )
+Valid_test_svm = sum( [ 1 for i in range(len(y_test)) if y_testPred_svm[i] == y_test[i] ] )
+print(Valid_test_svm/len(y_test))
+
+#################################################
