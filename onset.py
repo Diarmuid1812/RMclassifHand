@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 from scipy.io import loadmat
-osoba1 = loadmat('osoba_1.mat')['osoba_1']
-osoba2 = loadmat('osoba_2.mat')['osoba_4']
+osoba1 = loadmat('./osoba_1.mat')['osoba_1']
+osoba2 = loadmat('./osoba_2.mat')['osoba_4']
 
 sig = osoba1[0, 0, 4, :]
 t = np.arange(0, 2, 0.001)

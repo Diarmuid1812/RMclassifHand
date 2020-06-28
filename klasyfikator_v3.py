@@ -126,7 +126,7 @@ from sklearn.preprocessing import StandardScaler
 # Najpierw kNN bez PCA ale z onsetem :
 
 kNN_Raw = KNeighborsClassifier() # domyslna liczba sasiadow = 5
-kNN_Raw.fit( x_learn, y_learn )
+kNN_Raw.fit(x_learn, y_learn)
 
 # ocena klasyfikatora na zbiorze uczacym
 y_learnPred_Raw = kNN_Raw.predict( x_learn )
@@ -139,7 +139,7 @@ Valid_test_Raw = sum( [ 1 for i in range(len(y_test)) if y_testPred_Raw[i] == y_
 print(Valid_test_Raw/len(y_test))
 
 ##################################################
-
+import pickle
 # teraz kNN z PCA i onsetem :
 
 # PCA
@@ -148,10 +148,16 @@ print(Valid_test_Raw/len(y_test))
 pca = PCA(0.99, svd_solver='full')
 
 # zbiór uczacy dla kNN w zrzutowanej przestrzeni
+scaler = StandardScaler()
 x_learnArr = np.vstack(x_learn)
-x_learnNorm = StandardScaler().fit_transform(x_learnArr)
+x_learnNorm = scaler.fit_transform(x_learnArr)
+pickle.dump(scaler, open("./scaler.pkl", "wb"))
 
 pca.fit(x_learnNorm)
+
+
+
+pickle.dump(pca, open("./pca.pkl", "wb"))
 
 x_learnPCA = pca.transform(x_learnNorm)
 x_learnPCA_prepared = np.vsplit(x_learnPCA, x_learnPCA.shape[0])
@@ -166,7 +172,7 @@ for g in range(x_learnPCA.shape[0]):
 kNN = KNeighborsClassifier()
 kNN.fit(x_learnPCA_prepared, y_learn)
 
-import pickle
+
 knnPickle = open('./modelPZEZMS.pkl', 'wb')
 
 pickle.dump(kNN, knnPickle)
@@ -191,6 +197,28 @@ y_test_pred = kNN.predict(x_testPCA_prepared)
 Valid_test = sum( [ 1 for i in range(len(y_test)) if y_test_pred[i] == y_test[i] ] )
 print(Valid_test/len(y_test))
 
+testSamp = osoba1[0, 3, 0:8, :]
+testF = np.zeros(200)
+for m in range(8):
+    u_Raw = testSamp[m, :]
+    u = onsetCut(u_Raw)
+
+    t, f, z = signal.stft(u, nperseg=2 * np.round(np.sqrt(len(u))))
+    y = np.abs(z)
+    nf = len(f)  # ilosc okien czestotliwosciowych przed usrednieniem
+    nt = len(t)  # ilosc okien czasowych przed usrednieniem
+    df = int(nf / nwf)  # zadana dlugosc okna czestotliwosciowego
+    dt = int(nt / nwt)  # zadana dlugosc okna czasowego
+    A = np.zeros((nwf, nwt))
+    for i in range(nwf):
+        for j in range(nwt):
+            A[i, j] = np.mean(y[i * df:(i + 1) * df, j * dt:(j + 1) * dt])
+    testF[m*25:(m+1)*25] = np.ndarray.flatten(A)
+testNorm = scaler.transform(testF.reshape(1, -1))
+testPCA = pca.transform(testNorm)
+test_pred = kNN.predict(testPCA)
+print(test_pred)
+print("Fin")
 # END
 
 ##################################################
