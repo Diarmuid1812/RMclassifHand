@@ -1,27 +1,20 @@
-import matplotlib
-import notebook as notebook
 from scipy import io
 from scipy import signal
 import numpy as np
 import random
-import matplotlib.pyplot as plt
-import matplotlib.colors as col
-import matplotlib.cm as cm
 
-from mpl_toolkits.mplot3d import Axes3D
 #import os
 #os.chdir('C:/Users/Pawel/Desktop/Reka_projekt/')
-from onset import onsetCut
+from onset import onsetDetect
 
 path = './'
 file1 = 'osoba_1.mat'
 file2 = 'osoba_2.mat'
-#matdata1 = io.loadmat(path + file)
-#matdata1.keys()
-#osoba1 = matdata['osoba_1']
 osoba1 = io.loadmat(path + file1)['osoba_1']
 osoba2 = io.loadmat(path + file2)['osoba_4']
-#osoba1.shape
+
+
+samples = 1500
 
 ##### Struktura danych w pliku .mat : ###########
 
@@ -32,11 +25,11 @@ osoba2 = io.loadmat(path + file2)['osoba_4']
 
 ################## FUNKCJE ######################
 
-def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) :
-    u_Raw = data[k,p,m,:]
-    u = onsetCut(u_Raw)
+def averaged_stft_matrix(data, k, p, m, nwf, nwt, onset, draw_stft=0, draw_signal=0):
+    u_Raw = data[k,p,2*m,:]
+    u = u_Raw[onset:onset+samples]
 
-    t,f,z = signal.stft( u, nperseg = 2*np.round(np.sqrt(len(u))) )
+    t, f, z = signal.stft( u, nperseg=2*np.round(np.sqrt(len(u))))
     y = np.abs(z)
     nf = len(f) # ilosc okien czestotliwosciowych przed usrednieniem
     nt = len(t) # ilosc okien czasowych przed usrednieniem
@@ -46,53 +39,56 @@ def averaged_stft_matrix( data, k, p, m, nwf, nwt, draw_stft=0, draw_signal=0 ) 
     for i in range(nwf) :
         for j in range(nwt) :
             A[i,j] = np.mean( y[i*df:(i+1)*df, j*dt:(j+1)*dt] )
-    if(draw_stft) :
-        hf = plt.figure()
-        ha = hf.add_subplot(111, projection='3d')
-
-        px = np.array([[i] * 5 for i in range(5)]).ravel()  # x coordinates of each bar
-        py = np.array([i for i in range(5)] * 5)  # y coordinates of each bar
-        z = np.zeros(5 * 5)  # z coordinates of each bar
-        dx = np.ones(5 * 5)  # length along x-axis of each bar
-        dy = np.ones(5 * 5)  # length along y-axis of each bar
-        dz = A.ravel()  # length along z-axis of each bar (height)
-        offset = dz + np.abs(dz.min())
-        fracs = offset.astype(float) / offset.max()
-        norm = col.Normalize(fracs.min(), fracs.max())
-        cmap = cm.get_cmap('viridis')
-        max_height = np.max(dz)  # get range of colorbars so we can normalize
-        min_height = np.min(dz)
-        # scale each z to [0,1], and get their rgb values
-        rgba = [cmap((k - min_height) / max_height) for k in dz]
-
-        ha.bar3d(px, py, z, dx, dy, dz, color=rgba)
-        plt.show()
-
-    if(draw_signal) :
-        plt.plot(u)
     return A
 
-def stft_features( data, k, p, nwf, nwt ) :
+
+
+
+
+def stft_features( data, k, p, nwf, nwt, onset):
     F = np.zeros(200)
-    for m in range(8) : # petla po 8 kanalach EMG
-        F[m*25:(m+1)*25] = np.ndarray.flatten( averaged_stft_matrix(data,k,p,m,nwf,nwt) )
+    for m in range(8):  # petla po 8 kanalach EMG
+        F[m*25:(m+1)*25] = np.ndarray.flatten( averaged_stft_matrix(data, k, p, m, nwf, nwt, onset))
     return F
 
-################## Ekstrakcja cech ##############################
 
-nwf = 5 # zadana ilosc okien czestotliwosciowych
-nwt = 5 # zadana ilosc okien czasowych
+################## Ekstrakcja cech ##############################
+nwf = 5  # zadana ilosc okien czestotliwosciowych
+nwt = 5  # zadana ilosc okien czasowych
 
 x = [] # cechy stft
 y = [] # klasa ruchu (wartosc w zakresie od 0 do 10)
 
+onset = 500
+
 for k in range(11) :
     for p in range(200) :
-        x.append( stft_features(osoba1,k,p,nwf,nwt) ) 
-        y.append( k ) 
+        for m in range(8):
+            OD=onsetDetect(osoba1[k,p,2*m,:])
+            if OD is not None:
+                if OD<onset:
+                    onset = onsetDetect(osoba1[k,p,2*m,:])
+
 for k in range(11) :
     for p in range(200) :
-        x.append( stft_features(osoba2,k,p,nwf,nwt) )
+        onset = 500
+        for m in range(8):
+            OD = onsetDetect(osoba1[k, p, 2 * m, :])
+            if OD is not None:
+                if OD < onset:
+                    onset = onsetDetect(osoba1[k, p, 2 * m, :])
+        x.append( stft_features(osoba1,k,p,nwf,nwt,onset) )
+        y.append( k )
+
+for k in range(11) :
+    for p in range(200) :
+        onset = 500
+        for m in range(8):
+            OD = onsetDetect(osoba1[k, p, 2 * m, :])
+            if OD is not None:
+                if OD < onset:
+                    onset = onsetDetect(osoba1[k, p, 2 * m, :])
+        x.append( stft_features(osoba2,k,p,nwf,nwt,onset) )
         y.append( k )
 
 # Losowy podzial na zbiory :
@@ -164,9 +160,6 @@ x_learnPCA_prepared = np.vsplit(x_learnPCA, x_learnPCA.shape[0])
 for g in range(x_learnPCA.shape[0]):
     x_learnPCA_prepared[g] = x_learnPCA_prepared[g].reshape(-1)
 
-# Zapisanie liczby cech dla rzutowań nowych próbek
-#components = pca.components_[0]
-# skonstuowanie nowego PCA -- ze stałą liczbą cech
 
 # kNN
 kNN = KNeighborsClassifier()
@@ -201,7 +194,7 @@ testSamp = osoba1[0, 3, 0:8, :]
 testF = np.zeros(200)
 for m in range(8):
     u_Raw = testSamp[m, :]
-    u = onsetCut(u_Raw)
+    u = u_Raw[onset:onset+samples]
 
     t, f, z = signal.stft(u, nperseg=2 * np.round(np.sqrt(len(u))))
     y = np.abs(z)
@@ -253,3 +246,34 @@ Valid_test_svm = sum( [ 1 for i in range(len(y_test)) if y_testPred_svm[i] == y_
 print(Valid_test_svm/len(y_test))
 
 #################################################
+
+
+'''
+################
+# Plot drawing #
+################
+    if(draw_stft) :
+        hf = plt.figure()
+        ha = hf.add_subplot(111, projection='3d')
+
+        px = np.array([[i] * 5 for i in range(5)]).ravel()  # x coordinates of each bar
+        py = np.array([i for i in range(5)] * 5)  # y coordinates of each bar
+        z = np.zeros(5 * 5)  # z coordinates of each bar
+        dx = np.ones(5 * 5)  # length along x-axis of each bar
+        dy = np.ones(5 * 5)  # length along y-axis of each bar
+        dz = A.ravel()  # length along z-axis of each bar (height)
+        offset = dz + np.abs(dz.min())
+        fracs = offset.astype(float) / offset.max()
+        norm = col.Normalize(fracs.min(), fracs.max())
+        cmap = cm.get_cmap('viridis')
+        max_height = np.max(dz)  # get range of colorbars so we can normalize
+        min_height = np.min(dz)
+        # scale each z to [0,1], and get their rgb values
+        rgba = [cmap((k - min_height) / max_height) for k in dz]
+
+        ha.bar3d(px, py, z, dx, dy, dz, color=rgba)
+        plt.show()
+
+    if(draw_signal) :
+        plt.plot(u)
+'''
